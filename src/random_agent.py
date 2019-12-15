@@ -12,6 +12,9 @@ class RandomAgent(object):
 
     def act(self, observation, reward, done):
         return self.action_space.sample()
+    
+def update_buffer(buffer, interaction):
+    buffer.append(interaction)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=None)
@@ -37,11 +40,17 @@ if __name__ == '__main__':
     reward = 0
     done = False
     reward_list=[]
+    buffer=[]
+    #reward_list.append(reward)
     for i in range(episode_count):
         ob = env.reset()
         while True:
             action = agent.act(ob, reward, done)
-            ob, reward, done, _ = env.step(action)
+            obprev=ob;
+            ob, reward, done, _ = env.step(action) #ob=etat    (obprev,action,ob,reward,done)
+            print(ob)
+            interaction= {obprev,action,ob,reward,done}
+            update_buffer(buffer,interaction)
             reward_list.append(reward)
             if done:
                 break
@@ -54,3 +63,4 @@ if __name__ == '__main__':
 
     # Close the env and write monitor result info to disk
     env.close()
+
