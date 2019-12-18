@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import gym
 from gym import wrappers, logger
+import buffer
 
 class RandomAgent(object):
     """The world's simplest agent!"""
@@ -13,8 +14,6 @@ class RandomAgent(object):
     def act(self, observation, reward, done):
         return self.action_space.sample()
     
-def update_buffer(buffer, interaction):
-    buffer.append(interaction)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=None)
@@ -40,7 +39,7 @@ if __name__ == '__main__':
     reward = 0
     done = False
     reward_list=[]
-    buffer=[]
+    m=buffer.Memory(100)
     #reward_list.append(reward)
     for i in range(episode_count):
         ob = env.reset()
@@ -48,11 +47,10 @@ if __name__ == '__main__':
             action = agent.act(ob, reward, done)
             obprev=ob;
             ob, reward, done, _ = env.step(action) #ob=etat    (obprev,action,ob,reward,done)
-            print(ob)
-            interaction= {obprev,action,ob,reward,done}
-            update_buffer(buffer,interaction)
+            m.push( obprev,action,ob,reward,done)
             reward_list.append(reward)
             if done:
+                print (len(m))
                 break
             # Note there's no env.render() here. But the environment still can open window and
             # render if asked by env.monitor: it calls env.render('rgb_array') to record video.
