@@ -45,8 +45,6 @@ class RandomAgent(object):
                 loss = F.mse_loss(x, torch.tensor(i[3] ))  # mse_Loss
                 loss.backward()
 
-
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=None)
     parser.add_argument('env_id', nargs='?', default='CartPole-v1', help='Select the environment to run')
@@ -64,12 +62,14 @@ if __name__ == '__main__':
     episode_count = 100
     reward = 0
     done = False
-    reward_list = []
-    buffer = []
-    # reward_list.append(reward)
+
+    reward_list=[]
+    m=buffer.Memory(100)
+    #reward_list.append(reward)
     for i in range(episode_count):
         state = env.reset()
         while True:
+
             action = agent.act(state)
             action = torch.argmax(action).item()
             c_state = state
@@ -81,6 +81,7 @@ if __name__ == '__main__':
             reward_list.append(reward)
             if done:
                 reward = -1
+
                 break
     plt.plot(reward_list)
 
