@@ -4,33 +4,58 @@ import matplotlib.pyplot as plt
 import numpy as np
 import gym
 from gym import wrappers, logger
+from network import DQN
+from buffer import Memory
+import torch
+import random
+import torch.nn.functional as F
+
+
+
+EPSILON = 0.5
+BATCH_SIZE = 64
+GAMMA = 0.8
+
 
 class RandomAgent(object):
-    """The world's simplest agent!"""
     def __init__(self, action_space):
         self.action_space = action_space
+        self.memory = Memory(100000)
+        self.dqn = DQN(256)
+        self.optimizer = torch.optim.Adam(self.dqn.parameters(), 0.001)
 
-    def act(self, observation, reward, done):
-        return self.action_space.sample()
-    
-def update_buffer(buffer, interaction):
-    buffer.append(interaction)
+    def act(self, state):
+        r = random.random()
+        if r > EPSILON:
+            x = list(state)
+            return self.dqn(torch.tensor(x))
+        else:
+            return torch.LongTensor([[random.randrange(2)]])
+
+    def train(self):
+        y = 0.01
+        sample = self.memory.sample(np.min([10,len(self.memory)]))
+        for i  in sample:
+            x = self.dqn(torch.tensor(list(i[0])))
+            xs = torch.max(self.dqn(torch.tensor(list(i[2]))))
+            if i[4]==False:
+                loss=F.mse_loss(x,(i[3]+y*xs)) #mse_Loss
+                loss.backward()
+            else:
+                loss = F.mse_loss(x, torch.tensor(i[3] ))  # mse_Loss
+                loss.backward()
+
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=None)
     parser.add_argument('env_id', nargs='?', default='CartPole-v1', help='Select the environment to run')
     args = parser.parse_args()
 
-    # You can set the level to logger.DEBUG or logger.WARN if you
-    # want to change the amount of output.
     logger.set_level(logger.INFO)
 
     env = gym.make(args.env_id)
 
-    # You provide the directory to write to (can be an existing
-    # directory, including one with existing data -- all monitor files
-    # will be namespaced). You can also dump to a tempdir if you'd
-    # like: tempfile.mkdtemp().
     outdir = '/tmp/random-agent-results'
     env = wrappers.Monitor(env, directory=outdir, force=True)
     env.seed(0)
@@ -39,28 +64,27 @@ if __name__ == '__main__':
     episode_count = 100
     reward = 0
     done = False
-    reward_list=[]
-    buffer=[]
-    #reward_list.append(reward)
+    reward_list = []
+    buffer = []
+    # reward_list.append(reward)
     for i in range(episode_count):
-        ob = env.reset()
+        state = env.reset()
         while True:
-            action = agent.act(ob, reward, done)
-            obprev=ob;
-            ob, reward, done, _ = env.step(action) #ob=etat    (obprev,action,ob,reward,done)
-            print(ob)
-            interaction= {obprev,action,ob,reward,done}
-            update_buffer(buffer,interaction)
+            action = agent.act(state)
+            action = torch.argmax(action).item()
+            c_state = state
+            n_state, reward, done, _ = env.step(action)
+            agent.memory.push(c_state, action, n_state, reward, done)
+
+            agent.train()
+
             reward_list.append(reward)
             if done:
+                reward = -1
                 break
-            # Note there's no env.render() here. But the environment still can open window and
-            # render if asked by env.monitor: it calls env.render('rgb_array') to record video.
-            # Video is not recorded every episode, see capped_cubic_video_schedule for details.
     plt.plot(reward_list)
 
     plt.show()
 
     # Close the env and write monitor result info to disk
     env.close()
-
