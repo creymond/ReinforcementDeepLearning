@@ -7,7 +7,7 @@ class Memory(object):
         self.memory = []
 
     def push(self, state, action, next_state, reward, done):
-        if len(self.memory) >= self.max_size:
+        if len(self.memory) > self.max_size:
             self.memory.pop(0)
         self.memory.append((state, action, next_state, reward, done))
 
