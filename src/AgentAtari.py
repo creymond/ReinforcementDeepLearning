@@ -1,4 +1,3 @@
-import numpy as np
 import torch
 import torch.nn as nn
 
@@ -10,6 +9,8 @@ import random
 
 from gym.wrappers.atari_preprocessing import AtariPreprocessing
 from gym.wrappers.frame_stack import FrameStack
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 parameters = {
     'GAMMA': 0.9,
@@ -47,7 +48,7 @@ class AgentAtari:
         r = random.random()
 
         if r > self.p['EPSILON']:
-            x = torch.FloatTensor(state)
+            x = torch.FloatTensor(state).to(device)
             q_value = self.eval_cnn(x)
             action = torch.argmax(q_value).item()
             return action

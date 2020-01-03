@@ -1,6 +1,7 @@
-import random
 import torch
 from random import sample
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class ReplayMemory:
     def __init__(self, capacity, shape):
@@ -9,21 +10,21 @@ class ReplayMemory:
 
         # Store each element independently
         # Gives the appropriate shape to tensor to store multidimensional data
-        self.state = torch.empty([self.capacity, *shape])
-        self.n_state = torch.empty([self.capacity, *shape])
-        self.action = torch.empty([self.capacity])
-        self.reward = torch.empty([self.capacity])
-        self.done = torch.empty([self.capacity])
+        self.state = torch.empty([self.capacity, *shape], device=device)
+        self.n_state = torch.empty([self.capacity, *shape], device=device)
+        self.action = torch.empty([self.capacity], device=device)
+        self.reward = torch.empty([self.capacity], device=device)
+        self.done = torch.empty([self.capacity], device=device)
 
     def push(self, state, action, n_state, reward, done):
         i = self.index % self.capacity
-        self.state[i] = torch.FloatTensor(state)
-        self.n_state[i] = torch.FloatTensor(n_state)
+        self.state[i] = torch.FloatTensor(state).to(device)
+        self.n_state[i] = torch.FloatTensor(n_state).to(device)
 
         # Singleton must be converted as list before turning them to tensor
-        self.action[i] = torch.LongTensor([action])
-        self.reward[i] = torch.FloatTensor([reward])
-        self.done[i] = torch.BoolTensor([done])
+        self.action[i] = torch.LongTensor([action]).to(device)
+        self.reward[i] = torch.FloatTensor([reward]).to(device)
+        self.done[i] = torch.BoolTensor([done]).to(deveice)
 
         self.index = (self.index + 1)
 
