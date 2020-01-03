@@ -8,24 +8,19 @@ import gym
 from replayMemory import ReplayMemory
 import random
 
-cuda = False
-use_cuda = torch.cuda.is_available() and cuda
-device = torch.device("cuda" if use_cuda else "cpu")
-
 parameters = {
-    'HIDDEN_DIM': 60,
+    'HIDDEN_DIM': 50,
     'GAMMA': 0.9,
-    'MEMORY_SIZE': 10000,
+    'MEMORY_SIZE': 2000,
     'BATCH_SIZE': 32,
     'LEARNING_RATE': 1e-3,
-    'N_EPOCHS': 10,
+    'N_EPISODE': 1000,
     'EPSILON': 0.9,
-    'EPSILON_MIN': 0.0,
+    'EPSILON_MIN': 0.1,
     'EPSILON_DECAY': 0.992,
     'ALPHA': 0.005,
-    'N_STEPS': 200,
+    'N_STEPS': 500,
     'N_ACTIONS': 2,
-    'STEPS': 0
 }
 
 
@@ -43,20 +38,13 @@ class AgentCartpole:
             self.target_dqn.load_state_dict(torch.load("Model/eval_dqn.data"))
             print("Data has been loaded successfully")
         except:
-            pass
+            print("No data existing")
 
     def act(self, state):
         r = random.random()
-        e_min = self.p['EPSILON_MIN']
-        e = self.p['EPSILON']
-        e_decay = self.p['EPSILON_DECAY']
-        step = self.p['STEPS']
-        epsilon_t = e_min + (e - e_min) * np.exp(-1. * step / e_decay)
 
-        parameters['STEPS'] += 1
-
-        if r > epsilon_t:
-            x = torch.FloatTensor(state).to(device)
+        if r > self.p['EPSILON']:
+            x = torch.FloatTensor(state)
             q_value = self.eval_dqn(x)
             action = torch.argmax(q_value).item()
             return action
@@ -68,34 +56,40 @@ class AgentCartpole:
         if self.memory.index < self.p['BATCH_SIZE']:
             return
 
+        # Get the state dict from the saved date
         eval_dict = self.eval_dqn.state_dict()
         target_dict = self.eval_dqn.state_dict()
 
-        for weights in eval_dict:
-            target_dict[weights] = (1 - self.p['ALPHA']) * target_dict[weights] + self.p['ALPHA'] * eval_dict[
-                weights]
-            self.target_dqn.load_state_dict(target_dict)
+        # Updating the parameters of the target DQN
+        for w in eval_dict:
+            target_dict[w] = (1 - self.p['ALPHA']) * target_dict[w] + self.p['ALPHA'] * eval_dict[w]
+        self.target_dqn.load_state_dict(target_dict)
 
+        # Get a sample of size BATCH
         batch_state, batch_action, batch_next_state, batch_reward, batch_done = self.memory.pop(self.p['BATCH_SIZE'])
 
+        # Update the treshold for the act() method if needed everytime the agent learn
         if self.p["EPSILON"] > self.p["EPSILON_MIN"]:
             self.p["EPSILON"] *= self.p["EPSILON_DECAY"]
 
         loss = nn.MSELoss()
-        for i in range(len(batch_state)):
-            x = torch.FloatTensor(batch_state[i]).to(device)
-            Q_current = self.eval_dqn(x)
-            x_next = torch.FloatTensor(batch_next_state[i]).to(device)
-            Q_next = self.target_dqn(x_next).detach()
-            Q_expected = batch_reward[i] + (self.p['GAMMA'] * Q_next)
-            l = loss(Q_current.max(), Q_expected.max())
-            self.optimizer.zero_grad()
-            l.backward()
-            self.optimizer.step()
+
+        # Compute q values for the current evaluation
+        q_eval = self.eval_dqn(batch_state).gather(1, batch_action.long().unsqueeze(1)).reshape([self.p["BATCH_SIZE"]])
+
+        # Compute the next state q values
+        q_next = self.target_dqn(batch_next_state).detach()
+
+        # Compute the targetted q values
+        q_target = batch_reward + q_next.max(1)[0].reshape([self.p["BATCH_SIZE"]]) * self.p["GAMMA"]
+        self.optimizer.zero_grad()
+        l = loss(q_eval, q_target)
+        l.backward()
+        self.optimizer.step()
 
     def random(self):
         env = gym.make('CartPole-v1')
-
+        env = env.unwrapped
         env.reset()
         rewards = []
         while True:
@@ -113,17 +107,15 @@ class AgentCartpole:
         plt.grid()
         plt.show()
 
-
     def dqn_cartpole(self):
         env = gym.make('CartPole-v1')
         env = env.unwrapped
         rewards = []
-        for i in range(self.p['N_EPOCHS']):
+        for i in range(self.p['N_EPISODE']):
             state = env.reset()
-            self.p['STEPS'] = 0
-            rewards.append(0) # rewards per episode
+            rewards.append(0)
             for s in range(self.p['N_STEPS']):
-                env.render()
+                # env.render()
                 action = self.act(state)
                 n_state, reward, done, _ = env.step(action)
                 if done:
@@ -132,22 +124,16 @@ class AgentCartpole:
 
                 self.memory.push(state, action, n_state, reward, done)
                 self.learn()
-
                 state = n_state
 
-            print('Epoch : ', i, ', Rewards : ', rewards[-1])
+            print('Episode : ', i, ', Rewards : ', rewards[-1])
 
-        torch.save(self.eval_dqn.state_dict(), "Model/eval_dqn.data")
-        state = env.reset()
-        done = False
-        rewards.append(0)
-        while not done:
-            env.render()
-            action = agent.act(state)
-            state, reward, done, _ = env.step(action)
-            rewards[-1] += reward
+            # Save the eval model after each episode
+            torch.save(self.eval_dqn.state_dict(), "Model/eval_dqn.data")
+
+        # Display result
         plt.ylabel("Rewards")
-        plt.xlabel("Epoch")
+        plt.xlabel("Episode")
         plt.plot(rewards)
         plt.grid()
         plt.show()
