@@ -10,15 +10,15 @@ import random
 parameters = {
     'HIDDEN_DIM': 50,
     'GAMMA': 0.9,
-    'MEMORY_SIZE': 2000,
+    'MEMORY_SIZE': 100000,
     'BATCH_SIZE': 32,
     'LEARNING_RATE': 1e-3,
-    'N_EPISODE': 1000,
+    'N_EPISODE': 400,
     'EPSILON': 0.9,
     'EPSILON_MIN': 0.1,
-    'EPSILON_DECAY': 0.992,
+    'EPSILON_DECAY': 0.990,
     'ALPHA': 0.005,
-    'N_STEPS': 500,
+    'N_STEPS': 200,
     'N_ACTIONS': 2,
 }
 
@@ -131,10 +131,15 @@ class AgentCartpole:
             torch.save(self.eval_dqn.state_dict(), "Model/eval_dqn.data")
 
         # Display result
+        n = 50
+        res = sum(([a]*n for a in [sum(rewards[i:i+n])//n for i in range(0,len(rewards),n)]), [])
+        print(rewards)
         plt.ylabel("Rewards")
         plt.xlabel("Episode")
         plt.plot(rewards)
+        plt.plot(res)
         plt.grid()
+        plt.legend(['Rewards per episode', 'Last 50 runs average'])
         plt.show()
         env.close()
 

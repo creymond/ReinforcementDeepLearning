@@ -14,13 +14,13 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 parameters = {
     'GAMMA': 0.9,
-    'MEMORY_SIZE': 2000,
+    'MEMORY_SIZE': 100000,
     'BATCH_SIZE': 32,
     'LEARNING_RATE': 1e-3,
     'N_EPISODE': 2000,
     'EPSILON': 0.9,
     'EPSILON_MIN': 0.1,
-    'EPSILON_DECAY': 0.992,
+    'EPSILON_DECAY': 0.990,
     'ALPHA': 0.005,
     'N_STEPS': 200,
     'N_ACTIONS': 2,

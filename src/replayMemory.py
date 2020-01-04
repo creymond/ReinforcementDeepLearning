@@ -24,7 +24,7 @@ class ReplayMemory:
         # Singleton must be converted as list before turning them to tensor
         self.action[i] = torch.LongTensor([action]).to(device)
         self.reward[i] = torch.FloatTensor([reward]).to(device)
-        self.done[i] = torch.BoolTensor([done]).to(deveice)
+        self.done[i] = torch.BoolTensor([done]).to(device)
 
         self.index = (self.index + 1)
 

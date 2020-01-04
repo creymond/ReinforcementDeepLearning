@@ -17,10 +17,10 @@ class DQN(nn.Module):
 class Convolutional(nn.Module):
     def __init__(self):
         super(Convolutional, self).__init__()
-        self.conv1 = nn.Conv2d(4, 32, 8, 4)
-        self.conv2 = nn.Conv2d(32, 64, 4, 2)
-        self.fc1 = nn.Linear(5184, 512)
-        self.fc2 = nn.Linear(512, 4)
+        self.conv1 = nn.Conv2d(in_channels=4, out_channels=32, kernel_size=8, stride=4)
+        self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=4, stride=2)
+        self.fc1 = nn.Linear(5184, 1024)
+        self.fc2 = nn.Linear(1024, 4)
 
     def forward(self, x):
         x = F.relu(self.conv1(x.reshape([-1, 4, 84, 84])))
