@@ -28,6 +28,6 @@ We have created two agents : AgentCartpole and AgentAtari. They are quite simila
 
 ## Authors
 
-* **Claire Pillet** - [CReymond](https://github.com/creymond)
+* **Claire Pillet** - [ClairePillet](https://github.com/ClairePillet)
 
-* **Cyril Reymond** - [ClairePillet](https://github.com/ClairePillet)
+* **Cyril Reymond** - [CReymond](https://github.com/creymond)
