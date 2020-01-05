@@ -14,17 +14,18 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 parameters = {
     'GAMMA': 0.9,
-    'MEMORY_SIZE': 100000,
-    'BATCH_SIZE': 32,
+    'MEMORY_SIZE': 10000,
+    'BATCH_SIZE': 64,
     'LEARNING_RATE': 1e-3,
-    'N_EPISODE': 2000,
+    'N_EPISODE': 200,#2000
     'EPSILON': 0.9,
-    'EPSILON_MIN': 0.1,
+    'EPSILON_MIN': 0.01,
     'EPSILON_DECAY': 0.990,
     'ALPHA': 0.005,
     'N_STEPS': 200,
     'N_ACTIONS': 2,
 }
+
 
 
 class AgentAtari:
@@ -65,6 +66,7 @@ class AgentAtari:
         target_dict = self.eval_cnn.state_dict()
 
         # Updating the parameters of the target DQN
+
         for w in eval_dict:
             target_dict[w] = (1 - self.p['ALPHA']) * target_dict[w] + self.p['ALPHA'] * eval_dict[w]
         self.target_cnn.load_state_dict(target_dict)
@@ -75,6 +77,7 @@ class AgentAtari:
         # Update the treshold for the act() method if needed everytime the agent learn
         if self.p["EPSILON"] > self.p["EPSILON_MIN"]:
             self.p["EPSILON"] *= self.p["EPSILON_DECAY"]
+
 
         loss = nn.MSELoss()
 
@@ -91,11 +94,13 @@ class AgentAtari:
         l.backward()
         self.optimizer.step()
 
+
     def atari(self):
         env = gym.make('BreakoutNoFrameskip-v4')
         env = env.unwrapped
         env = AtariPreprocessing(env, frame_skip=4, grayscale_obs=True, scale_obs=True)
         env = FrameStack(env, 4)
+        self.p['N_ACTIONS'] = env.action_space.n
         rewards = []
         for i in range(self.p['N_EPISODE']):
             state = env.reset()
