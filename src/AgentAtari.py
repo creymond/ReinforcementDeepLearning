@@ -14,10 +14,10 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 parameters = {
     'GAMMA': 0.9,
-    'MEMORY_SIZE': 10000,
+    'MEMORY_SIZE': 1000,
     'BATCH_SIZE': 64,
-    'LEARNING_RATE': 1e-3,
-    'N_EPISODE': 200,#2000
+    'LEARNING_RATE': 1e-5,
+    'N_EPISODE': 100,#2000
     'EPSILON': 0.9,
     'EPSILON_MIN': 0.01,
     'EPSILON_DECAY': 0.990,
@@ -51,13 +51,20 @@ class AgentAtari:
         if r > self.p['EPSILON']:
             x = torch.FloatTensor(state).to(device)
             q_value = self.eval_cnn(x)
-            action = torch.argmax(q_value).item()
+            max=2;
+            if torch.abs( q_value[0][3])>torch.abs(q_value[0][2]):
+                max=3
+            action = max
+            if action<2 or action>3:
+                print(action)
             return action
         else:
-            action = random.randint(0, self.p['N_ACTIONS'] - 1)
+
+            action = random.randint(0, self.p['N_ACTIONS'] - 1)+2
+
             return action
 
-    def learn(self):
+    def learn(self,losss):
         if self.memory.index < self.p['BATCH_SIZE']:
             return
 
@@ -91,6 +98,7 @@ class AgentAtari:
         q_target = batch_reward + q_next.max(1)[0].reshape([self.p["BATCH_SIZE"]]) * self.p["GAMMA"]
         self.optimizer.zero_grad()
         l = loss(q_eval, q_target)
+        losss.append(l)
         l.backward()
         self.optimizer.step()
 
@@ -100,21 +108,29 @@ class AgentAtari:
         env = env.unwrapped
         env = AtariPreprocessing(env, frame_skip=4, grayscale_obs=True, scale_obs=True)
         env = FrameStack(env, 4)
-        self.p['N_ACTIONS'] = env.action_space.n
+
         rewards = []
+        losss=[]
+        print(env.get_action_meanings())
         for i in range(self.p['N_EPISODE']):
             state = env.reset()
             rewards.append(0)
+            env.step(1)
+            actual_life=5;
             for s in range(self.p['N_STEPS']):
-                env.render()
+                #env.render()
                 action = self.act(state)
+
                 n_state, reward, done, _ = env.step(action)
-                if done:
-                    reward = -1
+
+                if env.env.ale.lives() != actual_life:
+                    reward = -10
+                    actual_life-=1
+                    env.step(1)
                 rewards[-1] += reward
 
                 self.memory.push(state, action, n_state, reward, done)
-                self.learn()
+                self.learn(losss)
                 state = n_state
             print("Episode : ", i, ", Rewards : ", rewards[-1])
 
@@ -124,6 +140,11 @@ class AgentAtari:
         plt.ylabel("Rewards")
         plt.xlabel("Episode")
         plt.plot(rewards)
+        plt.grid()
+        plt.show()
+        plt.ylabel("loss")
+        plt.xlabel("Episode")
+        plt.plot(losss)
         plt.grid()
         plt.show()
         env.close()
