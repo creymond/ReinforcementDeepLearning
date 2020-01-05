@@ -16,14 +16,14 @@ parameters = {
     'GAMMA': 0.9,
     'MEMORY_SIZE': 1000,
     'BATCH_SIZE': 64,
-    'LEARNING_RATE': 1e-5,
+    'LEARNING_RATE': 1e-3,
     'N_EPISODE': 100,#2000
     'EPSILON': 0.9,
     'EPSILON_MIN': 0.01,
     'EPSILON_DECAY': 0.990,
     'ALPHA': 0.005,
     'N_STEPS': 200,
-    'N_ACTIONS': 2,
+    'N_ACTIONS': 4,
 }
 
 
@@ -39,8 +39,8 @@ class AgentAtari:
         self.optimizer = torch.optim.Adam(self.eval_cnn.parameters(), self.p['LEARNING_RATE'])
 
         try:
-            self.eval_cnn.load_state_dict(torch.load("Model/eval_cnn.data"))
-            self.target_cnn.load_state_dict(torch.load("Model/eval_cnn.data"))
+            self.eval_cnn.load_state_dict(torch.load("Model/eval_cnn4ac.data"))
+            self.target_cnn.load_state_dict(torch.load("Model/eval_cnn4ac.data"))
             print("Data has been loaded successfully")
         except:
             print("No data existing")
@@ -51,16 +51,11 @@ class AgentAtari:
         if r > self.p['EPSILON']:
             x = torch.FloatTensor(state).to(device)
             q_value = self.eval_cnn(x)
-            max=2;
-            if torch.abs( q_value[0][3])>torch.abs(q_value[0][2]):
-                max=3
-            action = max
-            if action<2 or action>3:
-                print(action)
-            return action
+
+            return torch.argmax(q_value).item()
         else:
 
-            action = random.randint(0, self.p['N_ACTIONS'] - 1)+2
+            action = random.randint(0, self.p['N_ACTIONS'] - 1)
 
             return action
 
@@ -118,13 +113,13 @@ class AgentAtari:
             env.step(1)
             actual_life=5;
             for s in range(self.p['N_STEPS']):
-                #env.render()
+                env.render()
                 action = self.act(state)
 
                 n_state, reward, done, _ = env.step(action)
 
                 if env.env.ale.lives() != actual_life:
-                    reward = -10
+                    reward = -1
                     actual_life-=1
                     env.step(1)
                 rewards[-1] += reward
@@ -134,7 +129,7 @@ class AgentAtari:
                 state = n_state
             print("Episode : ", i, ", Rewards : ", rewards[-1])
 
-        torch.save(self.eval_cnn.state_dict(), "Model/eval_cnn.data")
+        torch.save(self.eval_cnn.state_dict(), "Model/eval_cnn4ac.data")
 
         # Display result
         plt.ylabel("Rewards")
