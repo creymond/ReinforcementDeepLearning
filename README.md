@@ -14,6 +14,7 @@ The only requierement to run this project is to have Python 3 installed on your 
 
 Installing the virtual environment with Python3 
 
+```
 pip3 install -r requirements.txt
 ```
 
